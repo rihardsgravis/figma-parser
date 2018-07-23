@@ -5,7 +5,7 @@
 ### Usage:
 
 ```
-const FigmaParser = require("../figma-parser/");
+const FigmaParser = require("figma-parser");
 
 const figma = new FigmaParse({
    token: "your-access-token"

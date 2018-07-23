@@ -37,6 +37,10 @@ class FigmaParser {
 
 		const pageList = document.children
 
+		this.output = {
+			colors: []
+		}
+
 		this.parseTree(pageList)
 
 		const result = Markup.up(template, { colors: this.output.colors.map(set => set) })

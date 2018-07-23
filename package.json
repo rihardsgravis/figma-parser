@@ -1,0 +1,30 @@
+{
+	"name": "figma-parser",
+	"version": "0.0.1",
+	"description": "Parse Figma design files via Figma API",
+	"author": "Rihards Gravis <rihards.gravis@iota.org>",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/rihardsgravis/figma-parser.git"
+	},
+	"bugs": {
+		"url": "https://github.com/rihardsgravis/figma-parser/issues"
+	},
+	"homepage": "https://github.com/rihardsgravis/figma-parser#readme",
+	"main": "dist/index.js",
+	"scripts": {
+		"build": "tsc",
+		"prepublish": "npm run build"
+	},
+	"dependencies": {
+		"axios": "^0.18.0",
+		"markup-js": "^1.5.21"
+	},
+	"devDependencies": {
+		"typescript": "^2.9.2"
+	},
+	"files": [
+		"dist"
+	]
+}

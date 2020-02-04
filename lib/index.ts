@@ -4,15 +4,12 @@ import * as Markup from "markup-js"
 import { rgbaToStr } from "./helpers"
 
 class FigmaParser {
-	private settings: Settings
 	private client: AxiosInstance
 	public output: {
 		colors: AttributeSet[]
 	}
 
 	constructor(settings: Settings) {
-		this.settings = settings
-
 		this.client = axios.create({
 			baseURL: `https://api.figma.com/v1/`,
 			headers: {
@@ -102,8 +99,8 @@ class FigmaParser {
 				}
 
 				for (let i = 0; i < page["children"].length; i++) {
-					if (page["children"][i].fills) {
-						const fill = page["children"][i].fills[0]
+					if (page["children"][i]["fills"]) {
+						const fill = page["children"][i]["fills"][0]
 						attribute.value = rgbaToStr(fill.color, fill.opacity || 1)
 						break
 					}

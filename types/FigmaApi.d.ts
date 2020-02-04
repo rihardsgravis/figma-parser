@@ -1,17 +1,80 @@
 /**
  * Source https://github.com/jongold/figma-js/blob/master/src/figmaTypes.ts
  */
-
 export interface Global {
 	/** a string uniquely identifying this node within the document */
 	readonly id: string
 	/** the name given to the node by the user in the tool. */
 	readonly name: string
 	/** whether or not the node is visible on the canvas */
-	readonly visible: boolean
+	readonly visible?: boolean
 	/** the type of the node, refer to table below for details */
 	readonly type: NodeType
 }
+
+/**
+ * Styles can be one of the following types
+ */
+export type StyleType = "FILL" | "TEXT" | "EFFECT" | "GRID"
+
+/**
+ * the above styles can be used in the following ways
+ */
+export type StyleKeyType = "fill" | "stroke" | "effect" | "grid" | "text" | "background"
+
+export type StylesObject = {
+	[key in StyleKeyType]: Record<key, string>
+}[StyleKeyType]
+
+export type ScaleMode = "FILL" | "FIT" | "TILE" | "STRETCH"
+
+export type PaintTypeSolid = "SOLID"
+
+export type PaintTypeGraident = "GRADIENT_LINEAR" | "GRADIENT_RADIAL" | "GRADIENT_ANGULAR" | "GRADIENT_DIAMOND"
+
+export type PaintTypeImage = "IMAGE" | "EMOJI" // I'm guessing that EMOJI is like an image, not sure where it is used
+
+export type TextType = "TEXT"
+
+export type PaintType = PaintTypeSolid | PaintTypeGraident | PaintTypeImage
+
+/**
+ * how the layer blends with layers below
+ */
+export type BlendMode =
+	| "PASS_THROUGH" /** (Only applicable to objects with children) */
+	| "NORMAL"
+
+	/** Darken: */
+	| "DARKEN"
+	| "MULTIPLY"
+	| "LINEAR_BURN"
+	| "COLOR_BURN"
+
+	/** Lighten: */
+	| "LIGHTEN"
+	| "SCREEN"
+	| "LINEAR_DODGE"
+	| "COLOR_DODGE"
+
+	/** Contrast: */
+	| "OVERLAY"
+	| "SOFT_LIGHT"
+	| "HARD_LIGHT"
+
+	/** Inversion: */
+	| "DIFFERENCE"
+	| "EXCLUSION"
+
+	/** Component: */
+	| "HUE"
+	| "SATURATION"
+	| "COLOR"
+	| "LUMINOSITY"
+
+export type EasingType = "EASE_IN" /** Ease in with an animation curve similar to CSS ease-in */ | "EASE_OUT" /** Ease out with an animation curve similar to CSS ease-out */ | "EASE_IN_AND_OUT" /** Ease in and then out with an animation curve similar to CSS ease-in-out */
+
+export type RoleType = "viewer" | "editor" | "owner"
 
 export type NodeType = "DOCUMENT" | "CANVAS" | "FRAME" | "GROUP" | "VECTOR" | "BOOLEAN" | "STAR" | "LINE" | "ELLIPSE" | "REGULAR_POLYGON" | "RECTANGLE" | "TEXT" | "SLICE" | "COMPONENT" | "INSTANCE"
 
@@ -33,20 +96,24 @@ export interface Canvas extends Global {
 	readonly children: ReadonlyArray<Node>
 	/** Background color of the canvas */
 	readonly backgroundColor: Color
+	/** Node ID that corresponds to the start frame for prototypes */
+	readonly prototypeStartNodeID: string | null
 	/** An array of export settings representing images to export from the canvas */
-	readonly exportSettings: ReadonlyArray<ExportSetting>
+	readonly exportSettings?: ReadonlyArray<ExportSetting>
 }
 
 export interface FrameBase extends Global {
 	/** An array of nodes that are direct children of this node */
 	readonly children: ReadonlyArray<Node>
-	/** Background color of the node */
+	/** Backgrounds on the node */
+	readonly background: ReadonlyArray<Paint>
+	/** Background color of the node. This is deprecated, as frames now support more than a solid color as a background. Please use the background field instead. */
 	readonly backgroundColor: Color
 	/**
 	 * An array of export settings representing images to export from node
 	 * @default []
 	 */
-	readonly exportSettings: ReadonlyArray<ExportSetting>
+	readonly exportSettings?: ReadonlyArray<ExportSetting>
 	/**
 	 * How this node blends with nodes behind it in the scene
 	 * (see blend mode section for more details)
@@ -56,19 +123,29 @@ export interface FrameBase extends Global {
 	 * Keep height and width constrained to same ratio
 	 * @default false
 	 */
-	readonly preserveRatio: boolean
+	readonly preserveRatio?: boolean
 	/** Horizontal and vertical layout constraints for node */
 	readonly constraints: LayoutConstraint
 	/**
 	 * Node ID of node to transition to in prototyping
 	 * @default null
 	 */
-	readonly transitionNodeID: string | null
+	readonly transitionNodeID?: string | null
+	/**
+	 * The duration of the prototyping transition on this node (in milliseconds)
+	 * @default null
+	 */
+	readonly transitionDuration?: number | null
+	/**
+	 * The easing curve used in the prototyping transition on this node
+	 * @default null
+	 */
+	readonly transitionEasing?: EasingType | null
 	/**
 	 * Opacity of the node
 	 * @default 1
 	 */
-	readonly opacity: number
+	readonly opacity?: number
 	/** Bounding box of the node in absolute space coordinates */
 	readonly absoluteBoundingBox: Rect
 
@@ -95,7 +172,7 @@ export interface FrameBase extends Global {
 	 * for more details). GROUP nodes do not have this attribute
 	 * @default []
 	 */
-	readonly layoutGrids: ReadonlyArray<LayoutGrid>
+	readonly layoutGrids?: ReadonlyArray<LayoutGrid>
 	/**
 	 * An array of effects attached to this node
 	 * (see effects sectionfor more details)
@@ -106,7 +183,11 @@ export interface FrameBase extends Global {
 	 * Does this node mask sibling nodes in front of it?
 	 * @default false
 	 */
-	readonly isMask: boolean
+	readonly isMask?: boolean
+	/**
+	 * Styles this node uses from the global `styles`
+	 */
+	readonly styles?: StylesObject
 }
 
 /** A node of fixed size containing other nodes */
@@ -124,7 +205,7 @@ export interface VectorBase extends Global {
 	 * An array of export settings representing images to export from node
 	 * @default []
 	 */
-	readonly exportSettings: ReadonlyArray<ExportSetting>
+	readonly exportSettings?: ReadonlyArray<ExportSetting>
 	/**
 	 * How this node blends with nodes behind it in the scene
 	 * (see blend mode section for more details)
@@ -134,7 +215,7 @@ export interface VectorBase extends Global {
 	 * Keep height and width constrained to same ratio
 	 * @default false
 	 */
-	readonly preserveRatio: boolean
+	readonly preserveRatio?: boolean
 	/**
 	 * Horizontal and vertical layout constraints for node
 	 */
@@ -143,12 +224,22 @@ export interface VectorBase extends Global {
 	 * Node ID of node to transition to in prototyping
 	 * @default null
 	 */
-	readonly transitionNodeID: string | null
+	readonly transitionNodeID?: string | null
+	/**
+	 * The duration of the prototyping transition on this node (in milliseconds)
+	 * @default null
+	 */
+	readonly transitionDuration?: number | null
+	/**
+	 * The easing curve used in the prototyping transition on this node
+	 * @default null
+	 */
+	readonly transitionEasing?: EasingType | null
 	/**
 	 * Opacity of the node
 	 * @default 1
 	 */
-	readonly opacity: number
+	readonly opacity?: number
 	/** Bounding box of the node in absolute space coordinates */
 	readonly absoluteBoundingBox: Rect
 
@@ -178,7 +269,7 @@ export interface VectorBase extends Global {
 	 * Does this node mask sibling nodes in front of it?
 	 * @default false
 	 */
-	readonly isMask: boolean
+	readonly isMask?: boolean
 	/**
 	 * An array of fill paints applied to the node
 	 * @default []
@@ -213,6 +304,11 @@ export interface VectorBase extends Global {
 	 * "CENTER": draw stroke centered along the shape boundary
 	 */
 	readonly strokeAlign: "INSIDE" | "OUTSIDE" | "CENTER"
+
+	/**
+	 * Styles this node uses from the global `styles`
+	 */
+	readonly styles?: StylesObject
 }
 
 /** A vector network, consisting of vertices and edges */
@@ -223,6 +319,11 @@ export interface Vector extends VectorBase {
 /** A group that has a boolean operation applied to it */
 export interface BooleanGroup extends VectorBase {
 	readonly type: "BOOLEAN"
+	/**
+	 * A string enum with value of "UNION", "INTERSECT", "SUBTRACT", or "EXCLUDE"
+	 * indicating the type of boolean operation applied
+	 */
+	readonly booleanOperation: "UNION" | "INTERSECT" | "SUBTRACT" | "EXCLUDE"
 	/** An array of nodes that are being boolean operated on */
 	readonly children: ReadonlyArray<Node>
 }
@@ -250,13 +351,15 @@ export interface RegularPolygon extends VectorBase {
 /** A rectangle */
 export interface Rectangle extends VectorBase {
 	readonly type: "RECTANGLE"
-	/** Radius of each corner of the rectangle */
-	readonly cornerRadius: number
+	/** Radius of each corner of the rectangle if a single radius is set for all corners */
+	readonly cornerRadius?: number
+	/** Array of length 4 of the radius of each corner of the rectangle, starting in the top left and proceeding clockwise */
+	readonly rectangleCornerRadii?: [number, number, number, number]
 }
 
 /** A text box */
 export interface Text extends VectorBase {
-	readonly type: "TEXT"
+	readonly type: TextType
 	/** Text contained within text box */
 	readonly characters: string
 	/**
@@ -335,7 +438,7 @@ export interface ExportSetting {
 	/** File suffix to append to all filenames */
 	readonly suffix: string
 	/** Image type, string enum */
-	readonly format: "JPG" | "PNG" | "SVG"
+	readonly format: "JPG" | "PNG" | "SVG" | "PDF"
 	/** Constraint that determines sizing of exported asset */
 	readonly constraint: Constraint
 }
@@ -363,42 +466,6 @@ export interface Rect {
 	readonly width: number
 	/** Height of the rectangle */
 	readonly height: number
-}
-
-/**
- * Enum describing how layer blends with layers below
- * This type is a string enum with the following possible values
- */
-export enum BlendMode {
-	"PASS_THROUGH" /** (Only applicable to objects with children) */,
-	"NORMAL",
-
-	/** Darken: */
-	"DARKEN",
-	"MULTIPLY",
-	"LINEAR_BURN",
-	"COLOR_BURN",
-
-	/** Lighten: */
-	"LIGHTEN",
-	"SCREEN",
-	"LINEAR_DODGE",
-	"COLOR_DODGE",
-
-	/** Contrast: */
-	"OVERLAY",
-	"SOFT_LIGHT",
-	"HARD_LIGHT",
-
-	/** Inversion: */
-	"DIFFERENCE",
-	"EXCLUSION",
-
-	/** Component: */
-	"HUE",
-	"SATURATION",
-	"COLOR",
-	"LUMINOSITY"
 }
 
 /** Layout constraint relative to containing Frame */
@@ -471,21 +538,26 @@ export interface Effect {
 /** A solid color, gradient, or image texture that can be applied as fills or strokes */
 export interface Paint {
 	/** Type of paint as a string enum */
-	readonly type: "SOLID" | "GRADIENT_LINEAR" | "GRADIENT_RADIAL" | "GRADIENT_ANGULAR" | "GRADIENT_DIAMOND" | "IMAGE" | "EMOJI"
+	readonly type: PaintType
 	/**
 	 * Is the paint enabled?
 	 * @default true
 	 */
-	readonly visible: boolean
+	readonly visible?: boolean
 	/**
 	 * Overall opacity of paint (colors within the paint can also have opacity
 	 * values which would blend with this)
 	 * @default 1
 	 */
-	readonly opacity: number
+	readonly opacity?: number
 	// for solid paints
 	/** Solid color of the paint */
 	readonly color?: Color
+	/**
+	 * How this node blends with nodes behind it in the scene
+	 * (see blend mode section for more details)
+	 */
+	readonly blendMode: BlendMode
 	// for gradient paints
 	/**
 	 * This field contains three vectors, each of which are a position in
@@ -505,9 +577,30 @@ export interface Paint {
 	 * between neighboring gradient stops.
 	 */
 	readonly gradientStops?: ReadonlyArray<ColorStop>
+
 	// for image paints
+
 	/** Image scaling mode */
-	readonly scaleMode?: string
+	readonly scaleMode?: ScaleMode
+	/**
+	 * Affine transform applied to the image, only present if scaleMode is `STRETCH`
+	 */
+	readonly imageTransform?: Transform
+	/**
+	 * Amount image is scaled by in tiling, only present if scaleMode is `TILE`
+	 */
+	readonly scalingFactor?: number
+	/**
+	 * A reference to an image embedded in the file. To download the image using this reference,
+	 * use the GET file images endpoint to retrieve the mapping from image references to image URLs
+	 */
+	readonly imageRef?: string
+	/**
+	 * A reference to the GIF embedded in this node, if the image is a GIF.
+	 * To download the image using this reference,
+	 * use the GET file images endpoint to retrieve the mapping from image references to image URLs
+	 */
+	readonly gifRef?: string
 }
 
 export interface Path {
@@ -541,10 +634,14 @@ export interface TypeStyle {
 	readonly fontFamily: string
 	/** PostScript font name */
 	readonly fontPostScriptName: string
+	/** Space between paragraphs in px, 0 if not present */
+	readonly paragraphSpacing?: number
+	/** Paragraph indentation in px, 0 if not present */
+	readonly paragraphIndent?: number
 	/** Is text italicized? */
-	readonly italic: boolean
+	readonly italic?: boolean
 	/** Numeric font weight */
-	readonly fontWeight: number
+	readonly fontWeight: 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900
 	/** Font size in px */
 	readonly fontSize: number
 	/** Horizontal text alignment as string enum */
@@ -554,22 +651,91 @@ export interface TypeStyle {
 	/** Space between characters in px */
 	readonly letterSpacing: number
 	/** Paints applied to characters */
-	readonly fills: ReadonlyArray<Paint>
+	readonly fills?: ReadonlyArray<Paint>
 	/** Line height in px */
 	readonly lineHeightPx: number
 	/** Line height as a percentage of normal line height */
 	readonly lineHeightPercent: number
+	/** The unit of the line height value specified by the user. */
+	readonly lineHeightUnit: "PIXELS" | "FONT_SIZE_%" | "INTRINSIC_%"
+	/** Text casing applied to the node, default is the original casing */
+	readonly textCase?: "UPPER" | "LOWER" | "TITLE"
+	/** Text decoration applied to the node, default is none */
+	readonly textDecoration?: "STRIKETHROUGH" | "UNDERLINE"
+	/** Line height as a percentage of the font size. Only returned when lineHeightPercent is not 100. */
+	readonly lineHeightPercentFontSize?: number
 }
 
 /**
  * A description of a master component. Helps you identify which component
  * instances are attached to
  */
-export interface Component {
-	/** The name of the component */
+export interface ComponentMetadata {
+	/** The unique identifier of the element */
+	readonly key: string
+	/** The name of the element */
 	readonly name: string
-	/** The description of the component as entered in the editor */
+	/** The description of the element as entered in the editor */
 	readonly description: string
+}
+
+export interface FrameInfo {
+	/** Id of the frame node within the figma file */
+	readonly node_id: string
+	/** The name of the frame */
+	readonly name: string
+	/** Background color of the frame */
+	readonly background_color: string
+	/** Id of the frame's residing page */
+	readonly page_id: string
+	/** Name of the frame's residing page */
+	readonly page_name: string
+}
+
+interface SharedElement extends ComponentMetadata {
+	/** The unique identifier of the figma file which contains the element */
+	readonly file_key: string
+	/** Id of the component node within the figma file */
+	readonly node_id: string
+	/** URL link to the element's thumbnail image */
+	readonly thumbnail_urlString: string
+	/** The UTC ISO 8601 time at which the element was created */
+	readonly created_at: string
+	/** The UTC ISO 8601 time at which the element was updated */
+	readonly updated_at: string
+	/** The user who last updated the element */
+	readonly user: User
+}
+
+/**
+ * An arrangement of published UI elements that can be instantiated across figma files
+ */
+export interface FullComponentMetadata extends SharedElement {
+	/** Data on component's containing frame, if component resides within a frame */
+	readonly containing_frame: FrameInfo
+	/** Data on component's containing page, if component resides in a multi-page file */
+	readonly containing_page: any // broken link in the doc
+}
+
+export interface FullStyleMetadata extends SharedElement {
+	/** The type of style */
+	readonly style_type: StyleType
+	/** A user specified order number by which the style can be sorted */
+	readonly sort_position: string
+}
+
+/**
+ *  A description of styles used in a file.
+ */
+export interface Style {
+	/** The name of the stlye */
+	readonly name: string
+	/** A description of the style */
+	readonly description: string
+	/** The unique identifier of the style */
+	readonly key: string
+	/** The type of style */
+	readonly styleType: StyleType
 }
 
 // General API Types
@@ -593,7 +759,7 @@ export interface Comment {
 	 * The content of the comment
 	 */
 	readonly message: string
-	readonly client_meta: Vector2
+	readonly client_meta: Vector2 | FrameOffset
 	/**
 	 * Only set for top level comments. The number displayed with the
 	 * comment in the UI
@@ -603,8 +769,20 @@ export interface Comment {
 
 /** A description of a user */
 export interface User {
+	/** Unique stable id of the user */
+	readonly id: string
+	/** Name of the user */
 	readonly handle: string
+	/** URL link to the user's profile image */
 	readonly img_url: string
+}
+
+/** A relative offset within a frame */
+export interface FrameOffset {
+	/** Unique id specifying the frame */
+	readonly node_id: string
+	/** 2d vector offset within the frame */
+	readonly node_offset: Vector2
 }
 
 export interface ProjectSummary {
@@ -614,13 +792,55 @@ export interface ProjectSummary {
 
 export interface FileResponse {
 	readonly components: {
-		readonly [key: string]: Component
+		readonly [key: string]: ComponentMetadata
+	}
+	readonly styles: {
+		readonly [key: string]: Style
 	}
 	readonly document: Document
 	readonly lastModified: string
 	readonly name: string
+	readonly role: RoleType
 	readonly schemaVersion: number
 	readonly thumbnailUrl: string
+	readonly version: string
+}
+
+export interface FileNodesResponse {
+	readonly nodes: {
+		readonly [key: string]: null | {
+			readonly document: Node
+			readonly components: {
+				readonly [key: string]: ComponentMetadata
+			}
+			readonly styles: {
+				readonly [key: string]: Style
+			}
+			readonly schemaVersion: number
+		}
+	}
+	readonly lastModified: string
+	readonly name: string
+	readonly role: RoleType
+	readonly thumbnailUrl: string
+	readonly version: string
+}
+
+export interface VersionMetadata {
+	/** Unique identifier for version */
+	readonly id: string
+	/** The UTC ISO 8601 time at which the version was created */
+	readonly created_at: string
+	/** The label given to the version in the editor */
+	readonly label: string
+	/** The description of the version as entered in the editor */
+	readonly description: string
+	/** The user that created the version */
+	readonly user: User
+}
+
+export interface FileVersionsResponse {
+	readonly versions: ReadonlyArray<VersionMetadata>
 }
 
 export interface FileImageResponse {
@@ -630,8 +850,33 @@ export interface FileImageResponse {
 	}
 }
 
+export interface FileImageFillsResponse {
+	readonly error: boolean
+	readonly status: number
+	readonly meta: {
+		readonly images: {
+			readonly [key: string]: string
+		}
+	}
+}
+
 export interface CommentsResponse {
 	readonly comments: ReadonlyArray<Comment>
+}
+
+export interface ComponentResponse {
+	readonly err: string | null
+	readonly status: number
+	readonly meta: {
+		readonly [key: string]: FullComponentMetadata
+	}
+}
+
+export interface StyleResponse {
+	readonly err: string | null
+	readonly meta: {
+		readonly [key: string]: FullStyleMetadata
+	}
 }
 
 export interface FileSummary {
@@ -642,9 +887,34 @@ export interface FileSummary {
 }
 
 export interface TeamProjectsResponse {
+	readonly name: string
 	readonly projects: ReadonlyArray<ProjectSummary>
 }
 
 export interface ProjectFilesResponse {
+	readonly name: string
 	readonly files: ReadonlyArray<FileSummary>
+}
+
+interface PaginationResponse {
+	readonly cursor: {
+		readonly before: number
+		readonly after: number
+	}
+}
+
+export interface TeamComponentsResponse extends PaginationResponse {
+	readonly components: ReadonlyArray<FullComponentMetadata>
+}
+
+export interface FileComponentsResponse extends PaginationResponse {
+	readonly components: ReadonlyArray<FullComponentMetadata>
+}
+
+export interface TeamStylesResponse extends PaginationResponse {
+	readonly styles: ReadonlyArray<FullStyleMetadata>
+}
+
+export interface FileStylesResponse extends PaginationResponse {
+	readonly styles: ReadonlyArray<FullStyleMetadata>
 }

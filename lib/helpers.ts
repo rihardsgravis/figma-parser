@@ -1,3 +1,10 @@
+interface Color {
+	r: number
+	g: number
+	b: number
+	a: number
+}
+
 /**
  * Convert Color object to rgba string
  */

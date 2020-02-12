@@ -1,13 +1,34 @@
 import * as Figma from "../types/FigmaApi"
 import axios, { AxiosInstance } from "axios"
 import * as Markup from "markup-js"
+
 import { rgbaToStr } from "./helpers"
+import templates from "./templates"
+
+interface Settings {
+	token: string
+}
+
+interface Attribute {
+	name: string
+	value: string
+}
+
+interface Tokens {
+	colors: Attribute[]
+	spacing: Attribute[]
+	icons: Attribute[]
+	font: {
+		size: Attribute[]
+		family: Attribute[]
+		weight: Attribute[]
+	}
+}
 
 class FigmaParser {
 	private client: AxiosInstance
-	public output: {
-		colors: AttributeSet[]
-	}
+	private fileId: String
+	public output: Tokens
 
 	constructor(settings: Settings) {
 		this.client = axios.create({
@@ -18,15 +39,24 @@ class FigmaParser {
 		})
 
 		this.output = {
-			colors: []
+			colors: [],
+			spacing: [],
+			icons: [],
+			font: {
+				size: [],
+				weight: [],
+				family: []
+			}
 		}
 	}
 
 	/**
 	 * Trigger parse and apply template
 	 */
-	parse = async (fileId: string, template: string): Promise<String> => {
-		const document = await this.request(fileId)
+	parse = async (fileId: string): Promise<Tokens> => {
+		this.fileId = fileId
+
+		const document = await this.request()
 
 		if (!document) {
 			throw new Error("Error loading file")
@@ -35,22 +65,35 @@ class FigmaParser {
 		const pageList = document.children
 
 		this.output = {
-			colors: []
+			colors: [],
+			spacing: [],
+			icons: [],
+			font: {
+				size: [],
+				weight: [],
+				family: []
+			}
 		}
 
-		this.parseTree(pageList)
+		await this.parseTree(pageList)
 
-		const result = Markup.up(template, { colors: this.output.colors.map(set => set) })
+		return this.output
+	}
 
+	/**
+	 * Format token output to a markup template
+	 */
+	markup = (template?: string): String => {
+		const result = Markup.up(template ? templates[template] || template : templates.json, this.output)
 		return result
 	}
 
 	/**
 	 * Make an API request call
 	 */
-	request = async (fileId: string): Promise<Figma.Document> => {
+	request = async (): Promise<Figma.Document> => {
 		return this.client
-			.get(`files/${fileId}`)
+			.get(`files/${this.fileId}`)
 			.then(data => {
 				return data.data.document as Figma.Document
 			})
@@ -60,55 +103,109 @@ class FigmaParser {
 	}
 
 	/**
+	 * Make an API request call
+	 */
+	getImage = async (imageId: string): Promise<String> => {
+		const response = await this.client.get(`images/${this.fileId}?ids=${imageId}&format=svg`)
+
+		if (response.data.images[imageId]) {
+			const { data } = await axios.get(response.data.images[imageId], { responseType: "text" })
+			return data
+		}
+	}
+
+	/**
 	 * Parse provided Page following parse rules
 	 */
-	private parseTree = (pages: ReadonlyArray<Figma.Canvas | Figma.FrameBase | Figma.Node>): void => {
-		pages.forEach(page => {
-			if (page["children"]) {
-				this.parseTree(page["children"])
+	private parseTree = async (pages: ReadonlyArray<Figma.Canvas | Figma.FrameBase | Figma.Node>): Promise<void> => {
+		for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
+			const page = pages[pageIndex]
+
+			if (!page["children"]) {
+				continue
 			}
 
-			if (page["type"] !== "COMPONENT") {
-				return null
+			await this.parseTree(page["children"])
+
+			if (page["type"] !== "COMPONENT" || page["children"].length < 1) {
+				continue
 			}
+
+			const child = page["children"][0]
 
 			const nameParts = page.name.split("-")
 
+			if (nameParts.length < 2) {
+				continue
+			}
+
+			const role = nameParts[0]
+
 			/**
 			 * $color
-			 * Component naming pattern - `$color-{set}-{colorName}`
-			 * First child of the target Component containing a fill is used as the color output
 			 */
-			if (nameParts[0] === "$color" && nameParts.length > 1 && page["children"]) {
-				const set = nameParts[1]
-				let setIndex = this.output.colors.findIndex(color => color.set === set)
-
-				if (setIndex < 0) {
+			if (role === "$color" && child["fills"]) {
+				const fill = child["fills"][0]
+				const value = rgbaToStr(fill.color, fill.opacity || 1)
+				if (value) {
 					this.output.colors.push({
-						set: set,
-						values: []
+						name: nameParts.slice(1).join(""),
+						value
 					})
-					setIndex = this.output.colors.length - 1
 				}
-
-				const name = nameParts[2] || "color"
-
-				const attribute = {
-					name: name,
-					value: "rgba(255, 255, 255, 0)"
-				}
-
-				for (let i = 0; i < page["children"].length; i++) {
-					if (page["children"][i]["fills"]) {
-						const fill = page["children"][i]["fills"][0]
-						attribute.value = rgbaToStr(fill.color, fill.opacity || 1)
-						break
-					}
-				}
-
-				this.output.colors[setIndex].values.push(attribute)
 			}
-		})
+
+			/**
+			 * $spacing
+			 */
+			if (role === "$spacing" && child["absoluteBoundingBox"]) {
+				this.output.spacing.push({
+					name: nameParts.slice(1).join(""),
+					value: `${child["absoluteBoundingBox"]["height"]}px`
+				})
+			}
+
+			/**
+			 * $font
+			 */
+			if (role === "$font") {
+				if (nameParts[1] === "family" && child["style"]) {
+					this.output.font.family.push({
+						name: nameParts.length > 2 ? nameParts.slice(2).join("") : "default",
+						value: child["style"]["fontFamily"]
+					})
+				}
+
+				if (nameParts[1] === "style" && child["style"]) {
+					this.output.font.size.push({
+						name: nameParts.slice(2).join(""),
+						value: `${child["style"]["fontSize"]}px`
+					})
+					this.output.font.weight.push({
+						name: nameParts.slice(2).join(""),
+						value: child["style"]["fontWeight"]
+					})
+				}
+			}
+
+			/**s
+			 * $icon
+			 */
+			if (role === "$icon") {
+				try {
+					const image = await this.getImage(page.id)
+					const paths = image.match(/d="(.[^"]+)"/g)
+					if (paths.length === 1) {
+						this.output.icons.push({
+							name: nameParts.slice(1).join(""),
+							value: paths[0].substr(3, paths[0].length - 4)
+						})
+					}
+				} catch (err) {
+					console.log(err)
+				}
+			}
+		}
 	}
 }
 

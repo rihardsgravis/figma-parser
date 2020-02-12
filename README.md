@@ -27,7 +27,11 @@ const figma = new FigmaParser({
 });
 
 (async () => {
+  // Parse all tokens
   const output = await figma.parse("figma-file-id");
+
+  // Parse optional tokens
+  const output = await figma.parse("figma-file-id", ["color", "spacing"]);
 
   // Raw JSON file
   console.log(output);

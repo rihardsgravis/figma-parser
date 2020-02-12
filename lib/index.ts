@@ -15,19 +15,23 @@ interface Attribute {
 }
 
 interface Tokens {
-	colors: Attribute[]
-	spacing: Attribute[]
-	icons: Attribute[]
-	font: {
+	color?: Attribute[]
+	spacing?: Attribute[]
+	icon?: Attribute[]
+	font?: {
 		size: Attribute[]
 		family: Attribute[]
 		weight: Attribute[]
 	}
 }
 
+type Token = "color" | "spacing" | "icon" | "font"
+const TOKENS: Token[] = ["color", "spacing", "icon", "font"]
+
 class FigmaParser {
 	private client: AxiosInstance
 	private fileId: String
+	private tokens: Token[]
 	public output: Tokens
 
 	constructor(settings: Settings) {
@@ -37,24 +41,25 @@ class FigmaParser {
 				"X-Figma-Token": settings.token
 			}
 		})
+	}
+
+	/**
+	 * Trigger parse and apply template
+	 */
+	parse = async (fileId: string, tokens: Token[]): Promise<Tokens> => {
+		this.fileId = fileId
+		this.tokens = tokens || TOKENS
 
 		this.output = {
-			colors: [],
+			color: [],
 			spacing: [],
-			icons: [],
+			icon: [],
 			font: {
 				size: [],
 				weight: [],
 				family: []
 			}
 		}
-	}
-
-	/**
-	 * Trigger parse and apply template
-	 */
-	parse = async (fileId: string): Promise<Tokens> => {
-		this.fileId = fileId
 
 		const document = await this.request()
 
@@ -64,17 +69,6 @@ class FigmaParser {
 
 		const pageList = document.children
 
-		this.output = {
-			colors: [],
-			spacing: [],
-			icons: [],
-			font: {
-				size: [],
-				weight: [],
-				family: []
-			}
-		}
-
 		await this.parseTree(pageList)
 
 		return this.output
@@ -83,8 +77,13 @@ class FigmaParser {
 	/**
 	 * Format token output to a markup template
 	 */
-	markup = (template?: string): String => {
-		const result = Markup.up(template ? templates[template] || template : templates.json, this.output)
+	markup = (template?: string, input?: any): string => {
+		let result = Markup.up(template ? templates[template] || template : templates.json, input || this.output)
+		// Remove empty lines
+		result = result.replace(/(^[ \t]*\n)/gm, "")
+		// Remove trailing commas
+		result = result.replace(/\,(?!\s*?[\{\[\"\'\w])/g, "")
+
 		return result
 	}
 
@@ -144,11 +143,11 @@ class FigmaParser {
 			/**
 			 * $color
 			 */
-			if (role === "$color" && child["fills"]) {
+			if (this.tokens.indexOf("color") > -1 && role === "$color" && child["fills"]) {
 				const fill = child["fills"][0]
 				const value = rgbaToStr(fill.color, fill.opacity || 1)
 				if (value) {
-					this.output.colors.push({
+					this.output.color.push({
 						name: nameParts.slice(1).join(""),
 						value
 					})
@@ -158,7 +157,7 @@ class FigmaParser {
 			/**
 			 * $spacing
 			 */
-			if (role === "$spacing" && child["absoluteBoundingBox"]) {
+			if (this.tokens.indexOf("spacing") > -1 && role === "$spacing" && child["absoluteBoundingBox"]) {
 				this.output.spacing.push({
 					name: nameParts.slice(1).join(""),
 					value: `${child["absoluteBoundingBox"]["height"]}px`
@@ -168,7 +167,7 @@ class FigmaParser {
 			/**
 			 * $font
 			 */
-			if (role === "$font") {
+			if (this.tokens.indexOf("font") > -1 && role === "$font") {
 				if (nameParts[1] === "family" && child["style"]) {
 					this.output.font.family.push({
 						name: nameParts.length > 2 ? nameParts.slice(2).join("") : "default",
@@ -191,12 +190,12 @@ class FigmaParser {
 			/**s
 			 * $icon
 			 */
-			if (role === "$icon") {
+			if (this.tokens.indexOf("icon") > -1 && role === "$icon") {
 				try {
 					const image = await this.getImage(page.id)
 					const paths = image.match(/d="(.[^"]+)"/g)
 					if (paths.length === 1) {
-						this.output.icons.push({
+						this.output.icon.push({
 							name: nameParts.slice(1).join(""),
 							value: paths[0].substr(3, paths[0].length - 4)
 						})

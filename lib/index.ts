@@ -141,9 +141,9 @@ class FigmaParser {
 			const role = nameParts[0]
 
 			/**
-			 * $color
+			 * Color
 			 */
-			if (this.tokens.indexOf("color") > -1 && role === "$color" && child["fills"]) {
+			if (this.tokens.indexOf("color") > -1 && role === "color" && child["fills"]) {
 				const fill = child["fills"][0]
 				const value = rgbaToStr(fill.color, fill.opacity || 1)
 				if (value) {
@@ -155,9 +155,9 @@ class FigmaParser {
 			}
 
 			/**
-			 * $spacing
+			 * Spacing
 			 */
-			if (this.tokens.indexOf("spacing") > -1 && role === "$spacing" && child["absoluteBoundingBox"]) {
+			if (this.tokens.indexOf("spacing") > -1 && role === "spacing" && child["absoluteBoundingBox"]) {
 				this.output.spacing.push({
 					name: nameParts.slice(1).join(""),
 					value: `${child["absoluteBoundingBox"]["height"]}px`
@@ -165,9 +165,9 @@ class FigmaParser {
 			}
 
 			/**
-			 * $font
+			 * Font
 			 */
-			if (this.tokens.indexOf("font") > -1 && role === "$font") {
+			if (this.tokens.indexOf("font") > -1 && role === "font") {
 				if (nameParts[1] === "family" && child["style"]) {
 					this.output.font.family.push({
 						name: nameParts.length > 2 ? nameParts.slice(2).join("") : "default",
@@ -187,10 +187,10 @@ class FigmaParser {
 				}
 			}
 
-			/**s
-			 * $icon
+			/**
+			 * Icon
 			 */
-			if (this.tokens.indexOf("icon") > -1 && role === "$icon") {
+			if (this.tokens.indexOf("icon") > -1 && role === "icon" && nameParts.slice(1).join("") === "archive") {
 				try {
 					const image = await this.getImage(page.id)
 					const paths = image.match(/d="(.[^"]+)"/g)

@@ -2,9 +2,9 @@
  * Default JSON markup template
  */
 const json = `{
-{{if color}}
-  "color": { {{color}}
-    "{{name}}": "{{value}}",{{/color}}
+{{if colors}}
+  "color": { {{colors}}
+    "{{name}}": "{{value}}",{{/colors}}
   },
 {{/if}}
 {{if spacing}}
@@ -36,9 +36,9 @@ const json = `{
  * Typescript definition template
  */
 const ts = `export default interface Tokens {
-{{if color}}
-  color: { {{color}}
-    {{name}}: string;{{/color}}
+{{if colors}}
+  colors: { {{colors}}
+    {{name}}: string;{{/colors}}
   };
 {{/if}}
 {{if spacing}}

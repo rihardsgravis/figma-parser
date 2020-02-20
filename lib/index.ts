@@ -15,7 +15,7 @@ interface Attribute {
 }
 
 interface Tokens {
-	color?: Attribute[]
+	colors?: Attribute[]
 	spacing?: Attribute[]
 	icon?: Attribute[]
 	font?: {
@@ -25,8 +25,8 @@ interface Tokens {
 	}
 }
 
-type Token = "color" | "spacing" | "icon" | "font"
-const TOKENS: Token[] = ["color", "spacing", "icon", "font"]
+type Token = "colors" | "spacing" | "icons" | "font"
+const TOKENS: Token[] = ["colors", "spacing", "icons", "font"]
 
 class FigmaParser {
 	private client: AxiosInstance
@@ -51,7 +51,7 @@ class FigmaParser {
 		this.tokens = tokens || TOKENS
 
 		this.output = {
-			color: [],
+			colors: [],
 			spacing: [],
 			icon: [],
 			font: {
@@ -135,13 +135,13 @@ class FigmaParser {
 			const role = nameParts[0]
 
 			/**
-			 * Color
+			 * Colors
 			 */
-			if (this.tokens.indexOf("color") > -1 && role === "color" && layer["fills"]) {
+			if (this.tokens.indexOf("colors") > -1 && role === "color" && layer["fills"]) {
 				const fill = layer["fills"][0]
 				const value = rgbaToStr(fill.color, fill.opacity || 1)
 				if (value) {
-					this.output.color.push({
+					this.output.colors.push({
 						name: nameParts.slice(1).join(""),
 						value
 					})
@@ -184,7 +184,7 @@ class FigmaParser {
 			/**
 			 * Icon
 			 */
-			if (this.tokens.indexOf("icon") > -1 && role === "icon") {
+			if (this.tokens.indexOf("icons") > -1 && role === "icon") {
 				try {
 					const image = await this.getImage(page.id)
 					const paths = image.match(/d="(.[^"]+)"/g)

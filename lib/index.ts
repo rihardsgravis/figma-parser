@@ -120,17 +120,11 @@ class FigmaParser {
 		for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
 			const page = pages[pageIndex]
 
-			if (!page["children"]) {
-				continue
+			if (page["children"]) {
+				await this.parseTree(page["children"])
 			}
 
-			await this.parseTree(page["children"])
-
-			if (page["type"] !== "COMPONENT" || page["children"].length < 1) {
-				continue
-			}
-
-			const child = page["children"][0]
+			const layer = page["children"] ? page["children"][0] : page
 
 			const nameParts = page.name.split("-")
 
@@ -143,8 +137,8 @@ class FigmaParser {
 			/**
 			 * Color
 			 */
-			if (this.tokens.indexOf("color") > -1 && role === "color" && child["fills"]) {
-				const fill = child["fills"][0]
+			if (this.tokens.indexOf("color") > -1 && role === "color" && layer["fills"]) {
+				const fill = layer["fills"][0]
 				const value = rgbaToStr(fill.color, fill.opacity || 1)
 				if (value) {
 					this.output.color.push({
@@ -157,10 +151,10 @@ class FigmaParser {
 			/**
 			 * Spacing
 			 */
-			if (this.tokens.indexOf("spacing") > -1 && role === "spacing" && child["absoluteBoundingBox"]) {
+			if (this.tokens.indexOf("spacing") > -1 && role === "spacing" && layer["absoluteBoundingBox"]) {
 				this.output.spacing.push({
 					name: nameParts.slice(1).join(""),
-					value: `${child["absoluteBoundingBox"]["height"]}px`
+					value: `${layer["absoluteBoundingBox"]["height"]}px`
 				})
 			}
 
@@ -168,21 +162,21 @@ class FigmaParser {
 			 * Font
 			 */
 			if (this.tokens.indexOf("font") > -1 && role === "font") {
-				if (nameParts[1] === "family" && child["style"]) {
+				if (nameParts[1] === "family" && layer["style"]) {
 					this.output.font.family.push({
 						name: nameParts.length > 2 ? nameParts.slice(2).join("") : "default",
-						value: child["style"]["fontFamily"]
+						value: layer["style"]["fontFamily"]
 					})
 				}
 
-				if (nameParts[1] === "style" && child["style"]) {
+				if (nameParts[1] === "style" && layer["style"]) {
 					this.output.font.size.push({
 						name: nameParts.slice(2).join(""),
-						value: `${child["style"]["fontSize"]}px`
+						value: `${layer["style"]["fontSize"]}px`
 					})
 					this.output.font.weight.push({
 						name: nameParts.slice(2).join(""),
-						value: child["style"]["fontWeight"]
+						value: layer["style"]["fontWeight"]
 					})
 				}
 			}
@@ -190,7 +184,7 @@ class FigmaParser {
 			/**
 			 * Icon
 			 */
-			if (this.tokens.indexOf("icon") > -1 && role === "icon" && nameParts.slice(1).join("") === "archive") {
+			if (this.tokens.indexOf("icon") > -1 && role === "icon") {
 				try {
 					const image = await this.getImage(page.id)
 					const paths = image.match(/d="(.[^"]+)"/g)

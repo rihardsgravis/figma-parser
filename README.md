@@ -33,7 +33,7 @@ const figma = new FigmaParser({
   const output = await figma.parse("figma-file-id");
 
   // Parse optional tokens
-  const output = await figma.parse("figma-file-id", ["colors", "space"]);
+  const output = await figma.parse("figma-file-id", ["colors", "space", "fonts", "fontSizes", "fontWeights"]);
 
   // Raw JSON file
   console.log(output);

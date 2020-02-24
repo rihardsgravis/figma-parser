@@ -14,19 +14,26 @@ interface Attribute {
 	value: string
 }
 
-interface Tokens {
-	colors?: Attribute[]
-	space?: Attribute[]
-	icon?: Attribute[]
-	font?: {
-		size: Attribute[]
-		family: Attribute[]
-		weight: Attribute[]
-	}
+type Token = "colors" | "space" | "icons" | "fontSizes" | "fonts" | "fontWeights"
+
+type Tokens = {
+	[key in Token]: Attribute[]
 }
 
-type Token = "colors" | "space" | "icons" | "font"
-const TOKENS: Token[] = ["colors", "space", "icons", "font"]
+const defaultTokens: Token[] = ["colors", "space", "fontSizes", "fonts", "fontWeights"]
+
+type TokenSingulars = {
+	[key in Token]: string
+}
+
+const tokenSingulars: TokenSingulars = {
+	colors: "color",
+	space: "space",
+	fontSizes: "size",
+	fonts: "family",
+	fontWeights: "weight",
+	icons: "icon"
+}
 
 class FigmaParser {
 	private client: AxiosInstance
@@ -48,17 +55,15 @@ class FigmaParser {
 	 */
 	parse = async (fileId: string, tokens: Token[]): Promise<Tokens> => {
 		this.fileId = fileId
-		this.tokens = tokens || TOKENS
+		this.tokens = tokens || defaultTokens
 
 		this.output = {
 			colors: [],
 			space: [],
-			icon: [],
-			font: {
-				size: [],
-				weight: [],
-				family: []
-			}
+			icons: [],
+			fonts: [],
+			fontWeights: [],
+			fontSizes: []
 		}
 
 		const document = await this.request()
@@ -77,13 +82,20 @@ class FigmaParser {
 	/**
 	 * Format token output to a markup template
 	 */
-	markup = (template?: string, input?: any): string => {
-		let result = Markup.up(template ? templates[template] || template : templates.json, input || this.output)
+	markup = (template?: string, input?: Tokens): string => {
+		if (!input) {
+			input = this.output
+		}
+		const arrayInput = Object.keys(input)
+			.map(token => ({ token, singular: tokenSingulars[token], attributes: input[token] }))
+			.filter(item => item.attributes.length > 0)
+
+		let result = Markup.up(template ? templates[template] || template : templates.json, { tokens: arrayInput })
+
 		// Remove empty lines
 		result = result.replace(/(^[ \t]*\n)/gm, "")
 		// Remove trailing commas
 		result = result.replace(/\,(?!\s*?[\{\[\"\'\w])/g, "")
-
 		return result
 	}
 
@@ -119,6 +131,10 @@ class FigmaParser {
 	private parseTree = async (pages: ReadonlyArray<Figma.Canvas | Figma.FrameBase | Figma.Node>): Promise<void> => {
 		for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
 			const page = pages[pageIndex]
+
+			if (page.type === "INSTANCE") {
+				continue
+			}
 
 			if (page["children"]) {
 				await this.parseTree(page["children"])
@@ -161,20 +177,23 @@ class FigmaParser {
 			/**
 			 * Font
 			 */
-			if (this.tokens.indexOf("font") > -1 && role === "font") {
-				if (nameParts[1] === "family" && layer["style"]) {
-					this.output.font.family.push({
+			if (role === "font" && layer["style"]) {
+				if (this.tokens.indexOf("fonts") > -1 && nameParts[1] === "family") {
+					this.output.fonts.push({
 						name: nameParts.length > 2 ? nameParts.slice(2).join("") : "default",
 						value: layer["style"]["fontFamily"]
 					})
 				}
 
-				if (nameParts[1] === "style" && layer["style"]) {
-					this.output.font.size.push({
+				if (this.tokens.indexOf("fontSizes") > -1 && nameParts[1] === "style") {
+					this.output.fontSizes.push({
 						name: nameParts.slice(2).join(""),
 						value: `${layer["style"]["fontSize"]}px`
 					})
-					this.output.font.weight.push({
+				}
+
+				if (this.tokens.indexOf("fontWeights") > -1 && nameParts[1] === "style") {
+					this.output.fontWeights.push({
 						name: nameParts.slice(2).join(""),
 						value: layer["style"]["fontWeight"]
 					})
@@ -189,16 +208,16 @@ class FigmaParser {
 					const image = await this.getImage(page.id)
 					const paths = image.match(/d="(.[^"]+)"/g)
 					if (paths.length === 1) {
-						this.output.icon.push({
+						this.output.icons.push({
 							name: nameParts.slice(1).join(""),
 							value: paths[0].substr(3, paths[0].length - 4)
 						})
 						console.log(`Loaded icon ${page.name}, ${page.id}, ${page.type}`)
 					} else {
-						console.log(`No svg data for icon ${page.name}`)
+						console.warn(`No svg data for icon ${page.name}`)
 					}
 				} catch (err) {
-					console.log(`Failed to load icon ${page.name}`)
+					console.error(`Failed to load icon ${page.name}, ${page.id}, ${page.type}`)
 				}
 			}
 		}

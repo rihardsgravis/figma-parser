@@ -16,7 +16,7 @@ interface Attribute {
 
 interface Tokens {
 	colors?: Attribute[]
-	spacing?: Attribute[]
+	space?: Attribute[]
 	icon?: Attribute[]
 	font?: {
 		size: Attribute[]
@@ -25,8 +25,8 @@ interface Tokens {
 	}
 }
 
-type Token = "colors" | "spacing" | "icons" | "font"
-const TOKENS: Token[] = ["colors", "spacing", "icons", "font"]
+type Token = "colors" | "space" | "icons" | "font"
+const TOKENS: Token[] = ["colors", "space", "icons", "font"]
 
 class FigmaParser {
 	private client: AxiosInstance
@@ -52,7 +52,7 @@ class FigmaParser {
 
 		this.output = {
 			colors: [],
-			spacing: [],
+			space: [],
 			icon: [],
 			font: {
 				size: [],
@@ -149,10 +149,10 @@ class FigmaParser {
 			}
 
 			/**
-			 * Spacing
+			 * Space
 			 */
-			if (this.tokens.indexOf("spacing") > -1 && role === "spacing" && layer["absoluteBoundingBox"]) {
-				this.output.spacing.push({
+			if (this.tokens.indexOf("space") > -1 && role === "space" && layer["absoluteBoundingBox"]) {
+				this.output.space.push({
 					name: nameParts.slice(1).join(""),
 					value: `${layer["absoluteBoundingBox"]["height"]}px`
 				})
@@ -193,9 +193,12 @@ class FigmaParser {
 							name: nameParts.slice(1).join(""),
 							value: paths[0].substr(3, paths[0].length - 4)
 						})
+						console.log(`Loaded icon ${page.name}, ${page.id}, ${page.type}`)
+					} else {
+						console.log(`No svg data for icon ${page.name}`)
 					}
 				} catch (err) {
-					console.log(err)
+					console.log(`Failed to load icon ${page.name}`)
 				}
 			}
 		}

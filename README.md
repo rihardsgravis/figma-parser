@@ -10,7 +10,7 @@ Parse Figma design files via Figma API to design tokens
 Each token has to be a single layer following a specific naming (besides that, organise and style your design file as you want):
 
 -   **Colors** named `color-xxx` with **fill as the token value**
--   **Spacing** named `spacing-xxx` with **height as the token value**
+-   **Space** named `space-xxx` with **height as the token value**
 -   **Font family** named `font-family-xxx` with **font family set as token value**
 -   **Font size and weight** named `font-style-xxx` with **font size and weight set as token value**
 -   **Icons** named `icon-xxx` with **the icon shape as the first child layer**
@@ -33,7 +33,7 @@ const figma = new FigmaParser({
   const output = await figma.parse("figma-file-id");
 
   // Parse optional tokens
-  const output = await figma.parse("figma-file-id", ["colors", "spacing"]);
+  const output = await figma.parse("figma-file-id", ["colors", "space"]);
 
   // Raw JSON file
   console.log(output);

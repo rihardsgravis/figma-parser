@@ -3,13 +3,13 @@
  */
 const json = `{
 {{if colors}}
-  "color": { {{colors}}
+  "colors": { {{colors}}
     "{{name}}": "{{value}}",{{/colors}}
   },
 {{/if}}
-{{if spacing}}
-  "spacing": { {{spacing}}
-    "{{name}}": "{{value}}",{{/spacing}}
+{{if space}}
+  "space": { {{space}}
+    "{{name}}": "{{value}}",{{/space}}
   },
 {{/if}}
 {{if icon}}
@@ -41,9 +41,9 @@ const ts = `export default interface Tokens {
     {{name}}: string;{{/colors}}
   };
 {{/if}}
-{{if spacing}}
-  spacing: { {{spacing}}
-    {{name}}: string;{{/spacing}}
+{{if space}}
+  space: { {{space}}
+    {{name}}: string;{{/space}}
   };
 {{/if}}
 {{if icon}}

@@ -11,13 +11,14 @@ interface Settings {
 
 interface Attribute {
 	name: string
-	value: string
+	value?: string
+	values?: string[]
 }
 
 type Token = "colors" | "space" | "icons" | "fontSizes" | "fonts" | "fontWeights"
 
 type Tokens = {
-	[key in Token]: Attribute[]
+	[key in Token]: Object
 }
 
 const defaultTokens: Token[] = ["colors", "space", "fontSizes", "fonts", "fontWeights"]
@@ -58,12 +59,12 @@ class FigmaParser {
 		this.tokens = tokens || defaultTokens
 
 		this.output = {
-			colors: [],
-			space: [],
-			icons: [],
-			fonts: [],
-			fontWeights: [],
-			fontSizes: []
+			colors: {},
+			space: {},
+			icons: {},
+			fonts: {},
+			fontWeights: {},
+			fontSizes: {}
 		}
 
 		const document = await this.request()
@@ -86,16 +87,23 @@ class FigmaParser {
 		if (!input) {
 			input = this.output
 		}
+
+		for (let token in input) {
+			if (Object.keys(input[token]).length === 0) {
+				delete input[token]
+			}
+		}
+
 		const arrayInput = Object.keys(input)
-			.map(token => ({ token, singular: tokenSingulars[token], attributes: input[token] }))
+			.map(token => ({ token, singular: tokenSingulars[token], attributes: Object.keys(input[token]).map(attr => ({ name: attr, value: input[token].attr })) }))
 			.filter(item => item.attributes.length > 0)
 
-		let result = Markup.up(template ? templates[template] || template : templates.json, { tokens: arrayInput })
+		if (template === "json") {
+			return JSON.stringify(input, null, 2)
+		}
 
-		// Remove empty lines
-		result = result.replace(/(^[ \t]*\n)/gm, "")
-		// Remove trailing commas
-		result = result.replace(/\,(?!\s*?[\{\[\"\'\w])/g, "")
+		let result = Markup.up(template ? templates[template] || template : templates.ts, { tokens: arrayInput })
+
 		return result
 	}
 
@@ -157,21 +165,15 @@ class FigmaParser {
 				const fill = layer["fills"][0]
 				const value = rgbaToStr(fill.color, fill.opacity || 1)
 				if (value) {
-					this.output.colors.push({
-						name: nameParts.slice(1).join(""),
-						value
-					})
+					this.output.colors[nameParts.slice(1).join("")] = value
 				}
 			}
 
 			/**
 			 * Space
 			 */
-			if (this.tokens.indexOf("space") > -1 && role === "space" && layer["absoluteBoundingBox"]) {
-				this.output.space.push({
-					name: nameParts.slice(1).join(""),
-					value: `${layer["absoluteBoundingBox"]["height"]}px`
-				})
+			if (this.tokens.indexOf("space") > -1 && role === "spacing" && layer["absoluteBoundingBox"]) {
+				this.output.space[`${nameParts.slice(1).join("")}`] = `${layer["absoluteBoundingBox"]["height"]}px`
 			}
 
 			/**
@@ -179,24 +181,15 @@ class FigmaParser {
 			 */
 			if (role === "font" && layer["style"]) {
 				if (this.tokens.indexOf("fonts") > -1 && nameParts[1] === "family") {
-					this.output.fonts.push({
-						name: nameParts.length > 2 ? nameParts.slice(2).join("") : "default",
-						value: layer["style"]["fontFamily"]
-					})
+					this.output.fonts[nameParts.length > 2 ? nameParts.slice(2).join("") : "default"] = layer["style"]["fontFamily"]
 				}
 
 				if (this.tokens.indexOf("fontSizes") > -1 && nameParts[1] === "style") {
-					this.output.fontSizes.push({
-						name: nameParts.slice(2).join(""),
-						value: `${layer["style"]["fontSize"]}px`
-					})
+					this.output.fontSizes[nameParts.slice(2).join("")] = `${layer["style"]["fontSize"]}px`
 				}
 
 				if (this.tokens.indexOf("fontWeights") > -1 && nameParts[1] === "style") {
-					this.output.fontWeights.push({
-						name: nameParts.slice(2).join(""),
-						value: layer["style"]["fontWeight"]
-					})
+					this.output.fontWeights[nameParts.slice(2).join("")] = layer["style"]["fontWeight"]
 				}
 			}
 
@@ -207,18 +200,10 @@ class FigmaParser {
 				try {
 					const image = await this.getImage(page.id)
 					const paths = image.match(/d="(.[^"]+)"/g)
-					if (paths.length === 1) {
-						this.output.icons.push({
-							name: nameParts.slice(1).join(""),
-							value: paths[0].substr(3, paths[0].length - 4)
-						})
-						console.log(`Loaded icon ${page.name}, ${page.id}, ${page.type}`)
-					} else {
-						console.warn(`No svg data for icon ${page.name}`)
+					if (paths.length > 0) {
+						this.output.icons[nameParts.slice(1).join("")] = paths.map(path => path.substr(3, path.length - 4))
 					}
-				} catch (err) {
-					console.error(`Failed to load icon ${page.name}, ${page.id}, ${page.type}`)
-				}
+				} catch (err) {}
 			}
 		}
 	}

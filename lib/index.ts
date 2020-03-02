@@ -2,7 +2,7 @@ import * as Figma from "../types/FigmaApi"
 import axios, { AxiosInstance } from "axios"
 import * as Markup from "markup-js"
 
-import { rgbaToStr } from "./helpers"
+import { rgbaToStr, gradientToStr } from "./helpers"
 import templates from "./templates"
 
 interface Settings {
@@ -163,7 +163,9 @@ class FigmaParser {
 			 */
 			if (this.tokens.indexOf("colors") > -1 && role === "color" && layer["fills"]) {
 				const fill = layer["fills"][0]
-				const value = rgbaToStr(fill.color, fill.opacity || 1)
+
+				const value = fill.type === "SOLID" ? rgbaToStr(fill.color, fill.opacity || 1) : gradientToStr(fill.gradientStops)
+
 				if (value) {
 					this.output.colors[nameParts.slice(1).join("")] = value
 				}

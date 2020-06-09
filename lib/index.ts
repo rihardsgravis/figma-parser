@@ -33,7 +33,7 @@ const tokenSingulars: TokenSingulars = {
 	fontSizes: "size",
 	fonts: "family",
 	fontWeights: "weight",
-	icons: "icon"
+	icons: "icon",
 }
 
 class FigmaParser {
@@ -46,8 +46,8 @@ class FigmaParser {
 		this.client = axios.create({
 			baseURL: `https://api.figma.com/v1/`,
 			headers: {
-				"X-Figma-Token": settings.token
-			}
+				"X-Figma-Token": settings.token,
+			},
 		})
 	}
 
@@ -58,13 +58,15 @@ class FigmaParser {
 		this.fileId = fileId
 		this.tokens = tokens || defaultTokens
 
-		this.output = {
-			colors: {},
-			space: {},
-			icons: {},
-			fonts: {},
-			fontWeights: {},
-			fontSizes: {}
+		if (!this.output) {
+			this.output = {
+				colors: {},
+				space: {},
+				icons: {},
+				fonts: {},
+				fontWeights: {},
+				fontSizes: {},
+			}
 		}
 
 		const document = await this.request()
@@ -95,8 +97,8 @@ class FigmaParser {
 		}
 
 		const arrayInput = Object.keys(input)
-			.map(token => ({ token, singular: tokenSingulars[token], attributes: Object.keys(input[token]).map(attr => ({ name: attr, value: input[token].attr })) }))
-			.filter(item => item.attributes.length > 0)
+			.map((token) => ({ token, singular: tokenSingulars[token], attributes: Object.keys(input[token]).map((attr) => ({ name: attr, value: input[token].attr })) }))
+			.filter((item) => item.attributes.length > 0)
 
 		if (template === "json") {
 			return JSON.stringify(input, null, 2)
@@ -113,10 +115,10 @@ class FigmaParser {
 	request = async (): Promise<Figma.Document> => {
 		return this.client
 			.get(`files/${this.fileId}`)
-			.then(data => {
+			.then((data) => {
 				return data.data.document as Figma.Document
 			})
-			.catch(error => {
+			.catch((error) => {
 				return error.data.status
 			})
 	}
@@ -139,10 +141,6 @@ class FigmaParser {
 	private parseTree = async (pages: ReadonlyArray<Figma.Canvas | Figma.FrameBase | Figma.Node>): Promise<void> => {
 		for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
 			const page = pages[pageIndex]
-
-			if (page.type === "INSTANCE") {
-				continue
-			}
 
 			if (page["children"]) {
 				await this.parseTree(page["children"])
@@ -201,10 +199,12 @@ class FigmaParser {
 			if (this.tokens.indexOf("icons") > -1 && role === "icon") {
 				try {
 					const image = await this.getImage(page.id)
-					const paths = image.match(/d="(.[^"]+)"/g)
-					if (paths.length > 0) {
-						this.output.icons[nameParts.slice(1).join("")] = paths.map(path => path.substr(3, path.length - 4))
-					}
+					this.output.icons[
+						nameParts
+							.slice(1)
+							.map((item) => item.charAt(0).toUpperCase() + item.substr(1).toLowerCase())
+							.join("")
+					] = image
 				} catch (err) {}
 			}
 		}

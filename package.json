@@ -1,8 +1,8 @@
 {
 	"name": "figma-parser",
-	"version": "0.1.5",
+	"version": "0.1.6",
 	"description": "Parse Figma design files via Figma API",
-	"author": "Rihards Gravis <rihards.gravis@iota.org>",
+	"author": "Rihards Gravis <rihards@gravis.lv>",
 	"license": "MIT",
 	"repository": {
 		"type": "git",

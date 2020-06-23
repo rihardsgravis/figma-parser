@@ -24,10 +24,29 @@ export const rgbaToStr = (color: Color, opacity: number): string => {
 
 export const gradientToStr = (gradient: GradientStop[]): string => {
 	const steps = gradient
-		.map(stop => {
+		.map((stop) => {
 			return `${rgbaToStr(stop.color, 1)} ${Math.round(stop.position * 100)}%`
 		})
 		.join(", ")
 
 	return `linear-gradient(180deg, ${steps})`
+}
+
+export const fontWeights = {
+	thin: 100,
+	extralight: 200,
+	ultralight: 200,
+	light: 300,
+	book: 400,
+	normal: 400,
+	regular: 400,
+	roman: 400,
+	medium: 500,
+	semibold: 600,
+	demibold: 600,
+	bold: 700,
+	extrabold: 800,
+	ultrabold: 800,
+	black: 900,
+	heavy: 900,
 }

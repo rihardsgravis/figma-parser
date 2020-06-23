@@ -2,7 +2,7 @@ import * as Figma from "../types/FigmaApi"
 import axios, { AxiosInstance } from "axios"
 import * as Markup from "markup-js"
 
-import { rgbaToStr, gradientToStr } from "./helpers"
+import { rgbaToStr, gradientToStr, fontWeights } from "./helpers"
 import templates from "./templates"
 
 interface Settings {
@@ -15,13 +15,13 @@ interface Attribute {
 	values?: string[]
 }
 
-type Token = "colors" | "space" | "icons" | "fontSizes" | "fonts" | "fontWeights"
+type Token = "colors" | "space" | "icons" | "fontSizes" | "fonts" | "fontWeights" | "lineHeights" | "letterSpacings"
 
 type Tokens = {
 	[key in Token]: Object
 }
 
-const defaultTokens: Token[] = ["colors", "space", "fontSizes", "fonts", "fontWeights"]
+const defaultTokens: Token[] = ["colors", "space", "fontSizes", "fonts", "fontWeights", "lineHeights", "letterSpacings"]
 
 type TokenSingulars = {
 	[key in Token]: string
@@ -33,6 +33,8 @@ const tokenSingulars: TokenSingulars = {
 	fontSizes: "size",
 	fonts: "family",
 	fontWeights: "weight",
+	lineHeights: "line",
+	letterSpacings: "spacing",
 	icons: "icon",
 }
 
@@ -66,6 +68,8 @@ class FigmaParser {
 				fonts: {},
 				fontWeights: {},
 				fontSizes: {},
+				lineHeights: {},
+				letterSpacings: {},
 			}
 		}
 
@@ -188,8 +192,17 @@ class FigmaParser {
 					this.output.fontSizes[nameParts.slice(2).join("")] = `${layer["style"]["fontSize"]}px`
 				}
 
+				if (this.tokens.indexOf("lineHeights") > -1 && nameParts[1] === "style") {
+					this.output.lineHeights[nameParts.slice(2).join("")] = `${layer["style"]["lineHeightPercentFontSize"]}%`
+				}
+
+				if (this.tokens.indexOf("letterSpacings") > -1 && nameParts[1] === "style") {
+					this.output.letterSpacings[nameParts.slice(2).join("")] = `${Math.round((layer["style"]["letterSpacing"] / layer["style"]["fontSize"]) * 100) / 100}em`
+				}
+
 				if (this.tokens.indexOf("fontWeights") > -1 && nameParts[1] === "style") {
-					this.output.fontWeights[nameParts.slice(2).join("")] = layer["style"]["fontWeight"]
+					const fontWeight = layer["style"]["fontPostScriptName"].split("-").splice(-1, 1)[0].toLowerCase()
+					this.output.fontWeights[nameParts.slice(2).join("")] = fontWeights[fontWeight] || layer["style"]["fontWeight"]
 				}
 			}
 

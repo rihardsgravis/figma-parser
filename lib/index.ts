@@ -15,13 +15,13 @@ interface Attribute {
 	values?: string[]
 }
 
-type Token = "colors" | "space" | "icons" | "fontSizes" | "fonts" | "fontWeights" | "lineHeights" | "letterSpacings"
+type Token = "colors" | "space" | "icons" | "fontSizes" | "fonts" | "fontWeights" | "lineHeights" | "letterSpacings" | "textTransforms"
 
 type Tokens = {
 	[key in Token]: Object
 }
 
-const defaultTokens: Token[] = ["colors", "space", "fontSizes", "fonts", "fontWeights", "lineHeights", "letterSpacings"]
+const defaultTokens: Token[] = ["colors", "space", "fontSizes", "fonts", "fontWeights", "lineHeights", "letterSpacings", "textTransforms"]
 
 type TokenSingulars = {
 	[key in Token]: string
@@ -35,6 +35,7 @@ const tokenSingulars: TokenSingulars = {
 	fontWeights: "weight",
 	lineHeights: "line",
 	letterSpacings: "spacing",
+	textTransforms: "textTransform",
 	icons: "icon",
 }
 
@@ -70,6 +71,7 @@ class FigmaParser {
 				fontSizes: {},
 				lineHeights: {},
 				letterSpacings: {},
+				textTransforms: {},
 			}
 		}
 
@@ -203,6 +205,10 @@ class FigmaParser {
 				if (this.tokens.indexOf("fontWeights") > -1 && nameParts[1] === "style") {
 					const fontWeight = layer["style"]["fontPostScriptName"].split("-").splice(-1, 1)[0].toLowerCase()
 					this.output.fontWeights[nameParts.slice(2).join("")] = fontWeights[fontWeight] || layer["style"]["fontWeight"]
+				}
+
+				if (this.tokens.indexOf("textTransforms") > -1 && nameParts[1] === "style") {
+					this.output.textTransforms[nameParts.slice(2).join("")] = layer["style"]["textCase"] === "UPPER" ? "uppercase" : "none"
 				}
 			}
 

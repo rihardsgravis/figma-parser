@@ -1,6 +1,7 @@
 import * as Figma from "../types/FigmaApi"
 import axios, { AxiosInstance } from "axios"
 import * as Markup from "markup-js"
+import * as svgo from "svgo"
 
 import { rgbaToStr, gradientToStr, fontWeights } from "./helpers"
 import templates from "./templates"
@@ -15,7 +16,7 @@ interface Attribute {
 	values?: string[]
 }
 
-type Token = "colors" | "space" | "icons" | "fontSizes" | "fonts" | "fontWeights" | "lineHeights" | "letterSpacings" | "textTransforms"
+type Token = "colors" | "space" | "icons" | "illustrations" | "fontSizes" | "fonts" | "fontWeights" | "lineHeights" | "letterSpacings" | "textTransforms"
 
 type Tokens = {
 	[key in Token]: Object
@@ -37,7 +38,10 @@ const tokenSingulars: TokenSingulars = {
 	letterSpacings: "spacing",
 	textTransforms: "textTransform",
 	icons: "icon",
+	illustrations: "illustration",
 }
+
+const svgOptimizer = new svgo()
 
 class FigmaParser {
 	private client: AxiosInstance
@@ -72,6 +76,7 @@ class FigmaParser {
 				lineHeights: {},
 				letterSpacings: {},
 				textTransforms: {},
+				illustrations: {},
 			}
 		}
 
@@ -83,7 +88,7 @@ class FigmaParser {
 
 		const pageList = document.children
 
-		await this.parseTree(pageList)
+		await this.parseTree(pageList, "")
 
 		return this.output
 	}
@@ -144,21 +149,17 @@ class FigmaParser {
 	/**
 	 * Parse provided Page following parse rules
 	 */
-	private parseTree = async (pages: ReadonlyArray<Figma.Canvas | Figma.FrameBase | Figma.Node>): Promise<void> => {
+	private parseTree = async (pages: ReadonlyArray<Figma.Canvas | Figma.FrameBase | Figma.Node>, parentName: string): Promise<void> => {
 		for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
 			const page = pages[pageIndex]
 
+			const nameParts = page.name.split("-")
+
 			if (page["children"]) {
-				await this.parseTree(page["children"])
+				await this.parseTree(page["children"], nameParts[0])
 			}
 
 			const layer = page["children"] ? page["children"][0] : page
-
-			const nameParts = page.name.split("-")
-
-			if (nameParts.length < 2) {
-				continue
-			}
 
 			const role = nameParts[0]
 
@@ -204,7 +205,7 @@ class FigmaParser {
 
 				if (this.tokens.indexOf("fontWeights") > -1 && nameParts[1] === "style") {
 					const fontWeight = layer["style"]["fontPostScriptName"].split("-").splice(-1, 1)[0].toLowerCase()
-					this.output.fontWeights[nameParts.slice(2).join("")] = fontWeights[fontWeight] || layer["style"]["fontWeight"]
+					this.output.fontWeights[nameParts.slice(2).join("")] = fontWeights[fontWeight] || layer["style"]["fontWeight"].toString()
 				}
 
 				if (this.tokens.indexOf("textTransforms") > -1 && nameParts[1] === "style") {
@@ -215,15 +216,38 @@ class FigmaParser {
 			/**
 			 * Icon
 			 */
-			if (this.tokens.indexOf("icons") > -1 && role === "icon") {
+			if (this.tokens.indexOf("icons") > -1 && ((role === "icon" && nameParts.length > 1) || parentName === "icons")) {
 				try {
+					const iconName = nameParts
+						.slice(parentName === "icons" ? 0 : 1)
+						.map((item) => item.charAt(0).toUpperCase() + item.substr(1).toLowerCase())
+						.join("")
+
 					const image = await this.getImage(page.id)
-					this.output.icons[
-						nameParts
-							.slice(1)
-							.map((item) => item.charAt(0).toUpperCase() + item.substr(1).toLowerCase())
-							.join("")
-					] = image
+					const optimizedImage = await svgOptimizer.optimize(image)
+
+					console.log(`Fetched icon ${iconName}, original ${image.length}, optimized ${optimizedImage.data.length}`)
+
+					this.output.icons[iconName] = optimizedImage.data
+				} catch (err) {}
+			}
+
+			/**
+			 * Illustration
+			 */
+			if (this.tokens.indexOf("illustrations") > -1 && ((role === "illustration" && nameParts.length > 1) || parentName === "illustrations")) {
+				try {
+					const illustrationName = nameParts
+						.slice(parentName === "illustrations" ? 0 : 1)
+						.map((item) => item.charAt(0).toUpperCase() + item.substr(1).toLowerCase())
+						.join("")
+
+					const image = await this.getImage(page.id)
+					const optimizedImage = await svgOptimizer.optimize(image)
+
+					console.log(`Fetched illustration ${illustrationName}, original ${image.length}, optimized ${optimizedImage.data.length}`)
+
+					this.output.illustrations[illustrationName] = optimizedImage.data
 				} catch (err) {}
 			}
 		}

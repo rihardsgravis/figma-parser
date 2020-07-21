@@ -13,7 +13,8 @@ Each token has to be a single layer following a specific naming (besides that, o
 -   **Space** named `space-xxx` with **height as the token value**
 -   **Font family** named `font-family-xxx` with **font family set as token value**
 -   **Font size and weight** named `font-style-xxx` with **font size and weight set as token value**
--   **Icons** named `icon-xxx` with **the icon shape as the first child layer**
+-   **Icons** named `icon-xxx` with **the vector icon shape as the first child layer**
+-   **Illustrations** named `illustration-xxx` with **the vector illustration as the first child layer**
 
 The token can also be a group named by the rules. The style will be read by the last (bottom most) layer of the group.
 

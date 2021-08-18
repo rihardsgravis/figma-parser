@@ -108,7 +108,7 @@ class FigmaParser {
 		}
 
 		const arrayInput = Object.keys(input)
-			.map((token) => ({ token, singular: tokenSingulars[token], attributes: Object.keys(input[token]).map((attr) => ({ name: attr, value: input[token].attr })) }))
+			.map((token) => ({ token, singular: tokenSingulars[token], attributes: Object.keys(input[token]).map((attr) => ({ name: attr, value: input[token][attr] })) }))
 			.filter((item) => item.attributes.length > 0)
 
 		if (template === "json") {
@@ -235,7 +235,10 @@ class FigmaParser {
 			/**
 			 * Illustration
 			 */
+
 			if (this.tokens.indexOf("illustrations") > -1 && ((role === "illustration" && nameParts.length > 1) || parentName === "illustrations")) {
+				console.log(role, nameParts, parentName)
+
 				try {
 					const illustrationName = nameParts
 						.slice(parentName === "illustrations" ? 0 : 1)

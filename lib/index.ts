@@ -1,7 +1,7 @@
 import * as Figma from "../types/FigmaApi"
 import axios, { AxiosInstance } from "axios"
 import * as Markup from "markup-js"
-import * as svgo from "svgo"
+import { optimize } from "svgo"
 
 import { rgbaToStr, gradientToStr, fontWeights } from "./helpers"
 import templates from "./templates"
@@ -40,8 +40,6 @@ const tokenSingulars: TokenSingulars = {
 	icons: "icon",
 	illustrations: "illustration",
 }
-
-const svgOptimizer = new svgo()
 
 class FigmaParser {
 	private client: AxiosInstance
@@ -224,7 +222,8 @@ class FigmaParser {
 						.join("")
 
 					const image = await this.getImage(page.id)
-					const optimizedImage = await svgOptimizer.optimize(image)
+
+					const optimizedImage = optimize(image)
 
 					console.log(`Fetched icon ${iconName}, original ${image.length}, optimized ${optimizedImage.data.length}`)
 
@@ -246,7 +245,7 @@ class FigmaParser {
 						.join("")
 
 					const image = await this.getImage(page.id)
-					const optimizedImage = await svgOptimizer.optimize(image)
+					const optimizedImage = optimize(image)
 
 					console.log(`Fetched illustration ${illustrationName}, original ${image.length}, optimized ${optimizedImage.data.length}`)
 

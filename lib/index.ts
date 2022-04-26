@@ -189,24 +189,24 @@ class FigmaParser {
 					this.output.fonts[nameParts.length > 2 ? nameParts.slice(2).join("") : "default"] = layer["style"]["fontFamily"]
 				}
 
-				if (this.tokens.indexOf("fontSizes") > -1 && nameParts[1] === "style") {
+				if (this.tokens.indexOf("fontSizes") > -1 && (nameParts[1] === "style" || nameParts[1] === "size")) {
 					this.output.fontSizes[nameParts.slice(2).join("")] = `${layer["style"]["fontSize"]}px`
 				}
 
-				if (this.tokens.indexOf("lineHeights") > -1 && nameParts[1] === "style") {
+				if (this.tokens.indexOf("lineHeights") > -1 && (nameParts[1] === "style" || nameParts[1] === "lineheight")) {
 					this.output.lineHeights[nameParts.slice(2).join("")] = `${layer["style"]["lineHeightPercentFontSize"]}%`
 				}
 
-				if (this.tokens.indexOf("letterSpacings") > -1 && nameParts[1] === "style") {
+				if (this.tokens.indexOf("letterSpacings") > -1 && (nameParts[1] === "style" || nameParts[1] === "spacing")) {
 					this.output.letterSpacings[nameParts.slice(2).join("")] = `${Math.round((layer["style"]["letterSpacing"] / layer["style"]["fontSize"]) * 100) / 100}em`
 				}
 
-				if (this.tokens.indexOf("fontWeights") > -1 && nameParts[1] === "style") {
+				if (this.tokens.indexOf("fontWeights") > -1 && (nameParts[1] === "style" || nameParts[1] === "weight")) {
 					const fontWeight = layer["style"]["fontPostScriptName"].split("-").splice(-1, 1)[0].toLowerCase()
 					this.output.fontWeights[nameParts.slice(2).join("")] = fontWeights[fontWeight] || layer["style"]["fontWeight"].toString()
 				}
 
-				if (this.tokens.indexOf("textTransforms") > -1 && nameParts[1] === "style") {
+				if (this.tokens.indexOf("textTransforms") > -1 && (nameParts[1] === "style" || nameParts[1] === "transform")) {
 					this.output.textTransforms[nameParts.slice(2).join("")] = layer["style"]["textCase"] === "UPPER" ? "uppercase" : "none"
 				}
 			}

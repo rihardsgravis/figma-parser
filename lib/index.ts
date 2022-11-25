@@ -154,7 +154,7 @@ class FigmaParser {
 			const nameParts = page.name.split("-")
 
 			if (page["children"]) {
-				await this.parseTree(page["children"], nameParts[0])
+				await this.parseTree(page["children"], parentName === "icons" && page.type === "FRAME" ? "icons" : nameParts[0])
 			}
 
 			const layer = page["children"] ? page["children"][0] : page
@@ -214,7 +214,7 @@ class FigmaParser {
 			/**
 			 * Icon
 			 */
-			if (this.tokens.indexOf("icons") > -1 && ((role === "icon" && nameParts.length > 1) || parentName === "icons")) {
+			if (this.tokens.indexOf("icons") > -1 && page.type !== "FRAME" && ((role === "icon" && nameParts.length > 1) || parentName === "icons")) {
 				try {
 					const iconName = nameParts
 						.slice(parentName === "icons" ? 0 : 1)

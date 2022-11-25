@@ -3,7 +3,7 @@ import axios, { AxiosInstance } from "axios"
 import * as Markup from "markup-js"
 import { optimize } from "svgo"
 
-import { rgbaToStr, gradientToStr, parseIcons, fontWeights } from "./helpers"
+import { rgbaToStr, gradientToStr, fontWeights } from "./helpers"
 import templates from "./templates"
 
 interface Settings {
@@ -135,8 +135,8 @@ class FigmaParser {
 	/**
 	 * Make an API request call
 	 */
-	getImage = async (imageId: string): Promise<string> => {
-		const response = await this.client.get(`images/${this.fileId}?ids=${imageId}&format=svg&svg_include_id=true`)
+	getImage = async (imageId: string): Promise<String> => {
+		const response = await this.client.get(`images/${this.fileId}?ids=${imageId}&format=svg`)
 
 		if (response.data.images[imageId]) {
 			const { data } = await axios.get(response.data.images[imageId], { responseType: "text" })
@@ -212,17 +212,22 @@ class FigmaParser {
 			}
 
 			/**
-			 * Icons
+			 * Icon
 			 */
-
-			if (this.tokens.indexOf("icons") > -1 && role === "icons" && nameParts.length === 1) {
+			if (this.tokens.indexOf("icons") > -1 && ((role === "icon" && nameParts.length > 1) || parentName === "icons")) {
 				try {
-					const image = await this.getImage(page.id)
-					const icons = await parseIcons(image)
+					const iconName = nameParts
+						.slice(parentName === "icons" ? 0 : 1)
+						.map((item) => item.charAt(0).toUpperCase() + item.substr(1).toLowerCase())
+						.join("")
 
-					icons.forEach((icon) => {
-						this.output.icons[icon.name] = icon.image
-					})
+					const image = await this.getImage(page.id)
+
+					const optimizedImage = optimize(image)
+
+					console.log(`Fetched icon ${iconName}, original ${image.length}, optimized ${optimizedImage.data.length}`)
+
+					this.output.icons[iconName] = optimizedImage.data
 				} catch (err) {}
 			}
 
@@ -231,6 +236,8 @@ class FigmaParser {
 			 */
 
 			if (this.tokens.indexOf("illustrations") > -1 && ((role === "illustration" && nameParts.length > 1) || parentName === "illustrations")) {
+				console.log(role, nameParts, parentName)
+
 				try {
 					const illustrationName = nameParts
 						.slice(parentName === "illustrations" ? 0 : 1)
@@ -239,6 +246,8 @@ class FigmaParser {
 
 					const image = await this.getImage(page.id)
 					const optimizedImage = optimize(image)
+
+					console.log(`Fetched illustration ${illustrationName}, original ${image.length}, optimized ${optimizedImage.data.length}`)
 
 					this.output.illustrations[illustrationName] = optimizedImage.data
 				} catch (err) {}

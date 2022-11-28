@@ -157,7 +157,7 @@ class FigmaParser {
 				await this.parseTree(page["children"], parentName === "icons" && page.type === "FRAME" ? "icons" : nameParts[0])
 			}
 
-			const layer = page["children"] ? page["children"][0] : page
+			const layer = page["children"] && page["children"].length > 0 ? page["children"][0] : page
 
 			const role = nameParts[0]
 

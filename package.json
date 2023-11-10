@@ -18,7 +18,7 @@
 		"prepublish": "npm run build"
 	},
 	"dependencies": {
-		"axios": "^0.27.0",
+		"axios": "^1.6.0",
 		"markup-js": "^1.5.21",
 		"svgo": "^2.8.0"
 	},

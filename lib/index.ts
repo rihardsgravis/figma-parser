@@ -223,7 +223,7 @@ class FigmaParser {
 
 					const image = await this.getImage(page.id)
 
-					const optimizedImage = optimize(image)
+					const optimizedImage = optimize(image as string)
 
 					console.log(`Fetched icon ${iconName}, original ${image.length}, optimized ${optimizedImage.data.length}`)
 
@@ -245,7 +245,7 @@ class FigmaParser {
 						.join("")
 
 					const image = await this.getImage(page.id)
-					const optimizedImage = optimize(image)
+					const optimizedImage = optimize(image as string)
 
 					console.log(`Fetched illustration ${illustrationName}, original ${image.length}, optimized ${optimizedImage.data.length}`)
 
